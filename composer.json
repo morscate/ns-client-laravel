@@ -1,0 +1,27 @@
+{
+    "name": "morscate/ns-client-laravel",
+    "description": "A PHP library to query the Nederlandse Spoorwegen (Dutch Railways) API",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Rik Morskate",
+            "email": "development@morscate.nl",
+            "homepage": "https://morscate.nl",
+            "role": "Developer"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Morscate\\NsClient\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Morscate\\NsClient\\NsClientServiceProvider"
+            ]
+        }
+    }
+}
