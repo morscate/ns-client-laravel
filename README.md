@@ -1,1 +1,1 @@
-# ns-client-laravel
+# NS client for Laravel

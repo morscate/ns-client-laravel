@@ -2,21 +2,31 @@
 
 namespace Morscate\NsClient\Resources;
 
-use Morscate\NsClient\Interfaces\NsModelInterface;
+use Morscate\NsClient\Interfaces\NsResourceInterface;
 use Morscate\NsClient\NsClient;
 
-class NsResource implements NsModelInterface
+class NsResource implements NsResourceInterface
 {
     protected $client;
 
     public function __construct()
     {
-        $this->client = new NsClient($this->getEndpoint());
+        $this->client = new NsClient($this->getEndpoint(), $this->getVersion());
+    }
+
+    public function getVersion(): string
+    {
+        return 'v2';
     }
 
     public function getEndpoint(): string
     {
-        return '';
+        return $this->endpoint;
+    }
+
+    public function getModelClass(): string
+    {
+        return $this->modelClass;
     }
 
     public function where(string $field, $value)
@@ -31,8 +41,15 @@ class NsResource implements NsModelInterface
         return $this->client->get();
     }
 
-    public function toArray()
+    public function all()
     {
-        return $this->client->toArray();
+        $modelClass = $this->getModelClass();
+
+        foreach ($this->client->all()->payload as $resource) {
+            $models[] = new $modelClass((array) $resource);
+        }
+
+        dd(collect($models));
+        return collect($models);
     }
 }

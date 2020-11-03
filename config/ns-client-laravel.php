@@ -22,5 +22,5 @@ return [
     |
     */
 
-    'base_uri' => env('NS_BASE_URI', 'https://gateway.apiportal.ns.nl/reisinformatie-api/api/v2/'),
+    'base_uri' => env('NS_BASE_URI', 'https://gateway.apiportal.ns.nl/reisinformatie-api/api/'),
 ];

@@ -10,27 +10,33 @@ class NsClient
     private $client;
 
     /**
+     * The API version the resources can be found in
+     */
+    protected $version;
+
+    /**
      * The endpoint of the resource.
      */
-    private $endpoint;
+    protected $endpoint;
 
     /**
      * The query.
      */
     public $query = [];
 
-    public function __construct(string $endpoint)
+    public function __construct(string $endpoint, string $version)
     {
-        dump(config('ns-client-laravel.base_uri'));
-        $this->client = new Client([
-            'base_uri' => config('ns-client-laravel.base_uri')
-        ]);
-
         $this->endpoint = $endpoint;
+
+        $this->version = $version;
+
+        $this->client = new Client([
+            'base_uri' => config('ns-client-laravel.base_uri') . $this->version . '/'
+        ]);
     }
 
     /**
-     * Make a Navatia GET request
+     * Make a NS GET request
      */
     public function get()
     {
@@ -48,18 +54,18 @@ class NsClient
         return $response;
     }
 
-    /**
-     * Return the resource(s) as an array
-     */
-    public function toArray()
-    {
-        return json_decode($this->get()->getBody()->getContents());
-    }
-
     public function where(string $field, $value)
     {
         $this->query[$field] = $value;
 
         return $this;
+    }
+
+    /**
+     * Return the resource(s)
+     */
+    public function all()
+    {
+        return json_decode($this->get()->getBody()->getContents());
     }
 }

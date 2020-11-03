@@ -2,7 +2,7 @@
 
 namespace Morscate\NsClient\Interfaces;
 
-interface NsModelInterface
+interface NsResourceInterface
 {
     /**
      * The endpoint of the resource
