@@ -2,6 +2,8 @@
 
 namespace Morscate\NsClient\Models;
 
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Str;
 
 class NsModel
@@ -64,6 +66,7 @@ class NsModel
         elseif ($value && $this->isDateAttribute($key)) {
             $value = $this->fromDateTime($value);
         }
+
 
         $this->attributes[$key] = $value;
 
@@ -140,9 +143,36 @@ class NsModel
      */
     public function fromDateTime($value)
     {
-        return empty($value) ? $value : $this->asDateTime($value)->format(
-            $this->getDateFormat()
-        );
+        return empty($value) ? $value : $this->asDateTime($value);
+    }
+
+    /**
+     * Get the format for database stored dates.
+     *
+     * @return string
+     */
+    public function getDateFormat()
+    {
+        return $this->dateFormat ?? 'Y-m-d\TH:i:sP';
+    }
+    /**
+     * Return a timestamp as DateTime object.
+     *
+     * @param  mixed  $value
+     * @return \Illuminate\Support\Carbon
+     */
+    protected function asDateTime($value)
+    {
+        $format = $this->getDateFormat();
+
+        // If this value is already a Carbon instance, we shall just return it as is.
+        // This prevents us having to re-instantiate a Carbon instance when we know
+        // it already is one, which wouldn't be fulfilled by the DateTime check.
+        // if ($value instanceof CarbonInterface) {
+        //     return Carbon::createFromFormat($this->dateFormat, $value);
+        // }
+
+        return Carbon::createFromFormat($format, $value);
     }
 
     /**

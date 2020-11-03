@@ -18,4 +18,14 @@ class Leg extends NsModel
      */
     protected $dateFormat;
 
+    public function setStopsAttribute($stops) {
+        $this->stops = collect([]);
+
+        foreach ($stops as $stop) {
+            $this->stops->add(new Stop((array) $stop));
+        }
+
+        dd($this->stops);
+    }
+
 }
