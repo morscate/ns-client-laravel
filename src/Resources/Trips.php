@@ -31,23 +31,59 @@ class Trips extends NsResource
     }
 
     /**
-     * UIC: 1000440
+     * @param string|int station UIC code of the station to depart from
      */
     public function departureStation($value) 
+    {
+        $this->originUicCode($value);
+
+        return $this;
+    }
+
+    /**
+     * @param string|int station UIC code of the station to depart from
+     */
+    public function originUicCode($value) 
     {
         $this->client->where('originUicCode', $value);
 
         return $this;
     }
 
+    /**
+     * @param string|int station UIC code of the destination station
+     */
     public function destinationStation($value) 
+    {
+        $this->destinationUicCode($value);
+
+        return $this;
+    }
+
+    /**
+     * @param string|int station UIC code of the destination station
+     */
+    public function destinationUicCode($value) 
     {
         $this->client->where('destinationUicCode', $value);
 
         return $this;
     }
 
+    /**
+     * @param string $value the date time of the departure in RFC3339
+     */
     public function departureDateTime($value) 
+    {
+        $this->dateTime($value);
+
+        return $this;
+    }
+    
+    /**
+     * @param string $value the date time of the departure in RFC3339
+     */
+    public function dateTime($value) 
     {
         $this->client->where('dateTime', $value);
 

@@ -24,8 +24,5 @@ class Leg extends NsModel
         foreach ($stops as $stop) {
             $this->stops->add(new Stop((array) $stop));
         }
-
-        dd($this->stops);
     }
-
 }
