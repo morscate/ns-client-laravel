@@ -1,71 +1,151 @@
 <?php
 
-namespace Morscate\NsClient;
+namespace Morscate\NSClient;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Traits\ForwardsCalls;
+use Morscate\NsClient\Resources\NsResource;
 
 class NsClient
 {
-    private $client;
+    use ForwardsCalls;
+
+    private Client $client;
+
+    private NsResource $resource;
 
     /**
      * The API version the resources can be found in
      */
-    protected $version;
+    protected string $version;
 
-    /**
-     * The endpoint of the resource.
-     */
-    protected $endpoint;
+    private string $endpoint;
 
-    /**
-     * The query.
-     */
-    public $query = [];
+    private array $query = [];
 
-    public function __construct(string $endpoint, string $version)
+    public function __construct(NsResource $resource)
     {
-        $this->endpoint = $endpoint;
+        $this->setResource($resource);
 
-        $this->version = $version;
+        $version = $resource->getVersion();
 
         $this->client = new Client([
-            'base_uri' => config('ns-client-laravel.base_uri') . $this->version . '/'
+            'base_uri' => config('ns-client-laravel.base_uri') . $version . '/'
         ]);
     }
 
-    /**
-     * Make a NS GET request
-     */
-    public function get()
-    {
-        try {
-            $response = $this->client->request('GET', $this->endpoint, [
-                'headers' => [
-                    'Ocp-Apim-Subscription-Key' => config('ns-client-laravel.api_key')
-                ],
-                'query' => $this->query
-            ]);
-        } catch (GuzzleException $exception){
-            dd($exception);
-        }
-
-        return $response;
-    }
-
-    public function where(string $field, $value)
+    public function where(string $field, $value): self
     {
         $this->query[$field] = $value;
 
         return $this;
     }
 
-    /**
-     * Return the resource(s)
-     */
-    public function all()
+//    public function whereGuid(string $guid): self
+//    {
+//        $this->setEndpoint("{$this->endpoint}(guid'{{$guid}}')");
+//
+//        return $this;
+//    }
+
+    public function find(string $primaryKey)
     {
-        return json_decode($this->get()->getBody()->getContents());
+        $response = $this
+            ->whereGuid($primaryKey)
+            ->get();
+
+        return $response->first();
+    }
+
+    public function first()
+    {
+//        $this->query['$top'] = 1;
+
+        return $this->request('GET');
+    }
+
+    public function get(): Collection
+    {
+        $resource = $this->getResource();
+        $responseKey = $resource->getResponseKey();
+
+        $response = $this->request('GET');
+
+        $resources = collect();
+        if (isset($response->$responseKey)) {
+            foreach ($response->$responseKey as $item) {
+                $resources->add(new $resource((array) $item));
+            }
+        } else {
+            $resources->add(new $resource((array) $response));
+        }
+
+        return $resources;
+    }
+
+    public function request(string $method)
+    {
+        try {
+            $response = $this->client->request($method, $this->endpoint, [
+                'headers' => [
+                    'Ocp-Apim-Subscription-Key' => config('ns-client-laravel.api_key')
+                ],
+                'query' => $this->query
+            ]);
+        } catch (GuzzleException $exception) {
+            dd($exception);
+        }
+
+        return json_decode($response->getBody()->getContents());
+    }
+
+    public function getEndpoint(): string
+    {
+        return $this->endpoint;
+    }
+
+    public function getResource(): NsResource
+    {
+        return $this->resource;
+    }
+
+    public function setEndpoint($endpoint): self
+    {
+        $this->endpoint = $endpoint;
+        return $this;
+    }
+
+    public function setResource($resource): self
+    {
+        $this->resource = $resource;
+        $this->setEndpoint($resource->getEndpoint());
+        return $this;
+    }
+
+    /**
+     * Apply the given scope on the current builder instance.
+     *
+     * @param  callable  $scope
+     * @param  array  $parameters
+     * @return mixed
+     */
+    protected function callScope(callable $scope, $parameters = [])
+    {
+        array_unshift($parameters, $this);
+
+        return $scope(...array_values($parameters)) ?? $this;
+    }
+
+    public function __call($method, $parameters)
+    {
+        if ($this->resource !== null && method_exists($this->resource, $scope = 'scope'.ucfirst($method))) {
+            return $this->callScope([$this->resource, $scope], $parameters);
+        }
+
+        $this->forwardCallTo($this->query, $method, $parameters);
+
+        return $this;
     }
 }

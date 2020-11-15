@@ -2,7 +2,7 @@
 
 namespace Morscate\NsClient\Resources;
 
-use Morscate\NsClient\Models\Leg;
+use Morscate\NSClient\NsClient;
 
 class Trips extends NsResource
 {
@@ -12,8 +12,6 @@ class Trips extends NsResource
     protected $version = 'v3';
 
     protected $endpoint = 'trips';
-
-    protected $modelClass = \Morscate\NsClient\Models\Trip::class;
 
     public function getVersion(): string
     {
@@ -25,80 +23,63 @@ class Trips extends NsResource
         return $this->endpoint;
     }
 
-    public function getModelClass(): string
+    /**
+     * @param string|int station UIC code of the station to depart from
+     */
+    public function scopeDepartureStation(NsClient $client, $value): NsClient
     {
-        return $this->modelClass;
+        $client->originUicCode($value);
+
+        return $client;
     }
 
     /**
      * @param string|int station UIC code of the station to depart from
      */
-    public function departureStation($value) 
+    public function scopeOriginUicCode(NsClient $client, $value): NsClient
     {
-        $this->originUicCode($value);
+        $client->where('originUicCode', $value);
 
-        return $this;
-    }
-
-    /**
-     * @param string|int station UIC code of the station to depart from
-     */
-    public function originUicCode($value) 
-    {
-        $this->client->where('originUicCode', $value);
-
-        return $this;
+        return $client;
     }
 
     /**
      * @param string|int station UIC code of the destination station
      */
-    public function destinationStation($value) 
+    public function scopeDestinationStation(NsClient $client, $value): NsClient
     {
-        $this->destinationUicCode($value);
+        $client->destinationUicCode($value);
 
-        return $this;
+        return $client;
     }
 
     /**
      * @param string|int station UIC code of the destination station
      */
-    public function destinationUicCode($value) 
+    public function scopeDestinationUicCode(NsClient $client, $value): NsClient
     {
-        $this->client->where('destinationUicCode', $value);
+        $client->where('destinationUicCode', $value);
 
-        return $this;
+        return $client;
     }
 
     /**
      * @param string $value the date time of the departure in RFC3339
      */
-    public function departureDateTime($value) 
+    public function scopeDepartureDateTime(NsClient $client, $value): NsClient
     {
-        $this->dateTime($value);
+        $client->dateTime($value);
 
-        return $this;
+        return $client;
     }
     
     /**
      * @param string $value the date time of the departure in RFC3339
      */
-    public function dateTime($value) 
+    public function scopeDateTime(NsClient $client, $value): NsClient
     {
-        $this->client->where('dateTime', $value);
+        $client->where('dateTime', $value);
 
-        return $this;
-    }
-
-    public function all()
-    {
-        $modelClass = $this->getModelClass();
-
-        $trips = [];
-        foreach ($this->client->all()->trips as $key => $trip) {
-            $trips[$key] = new $modelClass((array) $trip);
-        }
-
-        return collect($trips);
+        return $client;
     }
 }

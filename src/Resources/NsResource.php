@@ -2,54 +2,91 @@
 
 namespace Morscate\NsClient\Resources;
 
-use Morscate\NsClient\Interfaces\NsResourceInterface;
+use Morscate\NsClient\Concerns\ForwardsCalls;
+use Morscate\NsClient\Concerns\HasAttributes;
 use Morscate\NsClient\NsClient;
 
-class NsResource implements NsResourceInterface
+abstract class NsResource
 {
-    protected $client;
+    use HasAttributes;
+    use ForwardsCalls;
 
-    public function __construct()
+    /**
+     * Create a new resource instance.
+     */
+    public function __construct(array $attributes = [])
     {
-        $this->client = new NsClient($this->getEndpoint(), $this->getVersion());
+        $this->fill($attributes);
     }
 
-    public function getVersion(): string
+    /**
+     * Dynamically retrieve attributes on the resource.
+     *
+     * @param  string  $key
+     * @return mixed
+     */
+    public function __get($key)
     {
-        return 'v2';
+        return $this->getAttribute($key);
     }
 
-    public function getEndpoint(): string
+    /**
+     * Dynamically set attributes on the resource.
+     *
+     * @param  string  $key
+     * @param  mixed  $value
+     * @return void
+     */
+    public function __set($key, $value)
     {
+        $this->setAttribute($key, $value);
+    }
+
+    /**
+     * Determine if an attribute or relation exists on the resource.
+     *
+     * @param  string  $key
+     * @return bool
+     */
+    public function __isset($key)
+    {
+        return $this->offsetExists($key);
+    }
+
+    /**
+     * Magically call the resource we want to do a request to
+     */
+    public function __call(string $method, array $parameters)
+    {
+        return $this->forwardCallTo($this->newClient(), $method, $parameters);
+    }
+
+    public static function __callStatic($method, $parameters)
+    {
+        return (new static)->$method(...$parameters);
+    }
+
+    public function getResponseKey(): string
+    {
+        if ($this->version === 'v2') {
+            return 'payload';
+        }
+
         return $this->endpoint;
     }
 
-    public function getModelClass(): string
+    /**
+     * Convert the resource instance to an array.
+     *
+     * @return array
+     */
+    public function toArray()
     {
-        return $this->modelClass;
+        return array_merge($this->attributesToArray());
     }
 
-    public function where(string $field, $value)
+    public function newClient(): NsClient
     {
-        $this->client->where($field, $value);
-
-        return $this;
-    }
-
-    public function get()
-    {
-        return $this->client->get();
-    }
-
-    public function all()
-    {
-        $modelClass = $this->getModelClass();
-
-        foreach ($this->client->all()->payload as $resource) {
-            $models[] = new $modelClass((array) $resource);
-        }
-
-        dd(collect($models));
-        return collect($models);
+        return new NsClient($this);
     }
 }
