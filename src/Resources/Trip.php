@@ -4,7 +4,7 @@ namespace Morscate\NsClient\Resources;
 
 use Morscate\NSClient\NsClient;
 
-class Trips extends NsResource
+class Trip extends NsResource
 {
     /**
      * The API version the resources can be found in
