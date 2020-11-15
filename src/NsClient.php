@@ -23,6 +23,8 @@ class NsClient
 
     private string $endpoint;
 
+    private int $limitRequests;
+
     private array $query = [];
 
     public function __construct(NsResource $resource)
@@ -34,6 +36,13 @@ class NsClient
         $this->client = new Client([
             'base_uri' => config('ns-client-laravel.base_uri') . $version . '/'
         ]);
+    }
+
+    public function limitRequests(int $limit): self
+    {
+        $this->limitRequests = $limit;
+
+        return $this;
     }
 
     public function where(string $field, $value): self
@@ -50,22 +59,23 @@ class NsClient
 //        return $this;
 //    }
 
-    public function find(string $primaryKey)
-    {
-        $response = $this
-            ->whereGuid($primaryKey)
-            ->get();
-
-        return $response->first();
-    }
+//    public function find(string $primaryKey)
+//    {
+//        $response = $this
+//            ->whereGuid($primaryKey)
+//            ->get();
+//
+//        return $response->first();
+//    }
 
     public function first()
     {
-//        $this->query['$top'] = 1;
-
-        return $this->request('GET');
+        return $this->get()->first();
     }
 
+    /**
+     * Get the results with max one request
+     */
     public function get(): Collection
     {
         $resource = $this->getResource();
@@ -81,6 +91,30 @@ class NsClient
         } else {
             $resources->add(new $resource((array) $response));
         }
+
+        return $resources;
+    }
+
+    /**
+     * Get all the results by doing multiple requests
+     */
+    public function all(): Collection
+    {
+        $resource = $this->getResource();
+        $responseKey = $resource->getResponseKey();
+
+        $resources = collect();
+        $i = 1;
+        do {
+            $response = $this->request('GET');
+
+            foreach ($response->$responseKey as $item) {
+                $resources->add(new $resource((array) $item));
+            }
+
+            $i++;
+            $this->query['context'] = $response->scrollRequestForwardContext ?? '';
+        } while ($i <= $this->limitRequests && !empty($response->scrollRequestForwardContext));
 
         return $resources;
     }
