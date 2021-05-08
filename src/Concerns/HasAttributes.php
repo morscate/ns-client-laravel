@@ -2,19 +2,18 @@
 
 namespace Morscate\NsClient\Concerns;
 
-use Illuminate\Support\Carbon;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Morscate\NsClient\Resources\Leg;
+use Morscate\NsClient\Resources\Resource;
 
-/**
- * @todo add functionality that removes attributes to clean up the returned
- */
 trait HasAttributes
 {
     /**
      * The field with the resource's primary key.
      */
-    protected string $primaryKeyFieldName = 'ID';
+    protected string $primaryKeyFieldName = 'uid';
 
     /**
      * The resource's attributes.
@@ -63,8 +62,9 @@ trait HasAttributes
 
         // If an attribute is listed as a "relationship", we'll do another request to grab it
         elseif ($value && $this->isRelationshipAttribute($key)) {
-            $this->$key = $this->requestRelationship($key);
+            $this->$key = $this->formatRelationship($key, $value);
 
+//            dd($this, $key);
             return $this;
         }
 
@@ -85,9 +85,20 @@ trait HasAttributes
      */
     public function getAttribute(string $key)
     {
-        if (! $key) {
+        if (!$key) {
             return;
         }
+
+        // If an attribute is listed as a "relationship", we'll do another request to grab it/them
+        // When it's not yet an resource (or collection of resources)
+        // Be aware this could result in multiple requests
+//        if (
+//            $this->isRelationshipAttribute($key)
+//            && !$this->getAttributeValue($key) instanceof Collection
+//            && !$this->getAttributeValue($key) instanceof Resource
+//        ) {
+//            return $this->formatRelationship($key, $this->getAttributeFromArray($key));
+//        }
 
         // If the attribute exists in the attribute array or has a "get" mutator we will
         // get the attribute's value. Otherwise, we will proceed as if the developers
@@ -127,8 +138,6 @@ trait HasAttributes
 
     /**
      * Get a plain attribute (not a relationship).
-     *
-     * @param  string  $key
      */
     public function getAttributeValue($key)
     {
@@ -137,8 +146,6 @@ trait HasAttributes
 
     /**
      * Transform a raw model value using mutators, casts, etc.
-     *
-     * @param  string  $key
      */
     protected function transformModelValue($key, $value)
     {
@@ -178,10 +185,9 @@ trait HasAttributes
     /**
      * Return a timestamp as DateTime object.
      */
-    protected function asDateTime($value): Carbon
+    protected function asDateTime(string $value): Carbon
     {
-        preg_match('/(\d{13})/', $value, $matches);
-        return Carbon::createFromTimestampMs($matches[0]);
+        return Carbon::createFromFormat('Y-m-d\TH:i:sO', $value);
     }
 
     /**
@@ -195,21 +201,28 @@ trait HasAttributes
     /**
      * Determine if an attributes is a relationship.
      */
-    public function requestRelationship($relationName): Collection
+    public function formatRelationship(string $relationName, $relationItems): Collection
     {
-        $parentEndpoint = $this->getEndpoint();
-        $parentKey = $this->getPrimaryKey();
         $relationClass = $this->relationships[$relationName];
 
-        return (new $relationClass)->newClient()
-            ->setEndpoint("{$parentEndpoint}(guid'{$parentKey}')/{$relationName}")
-            ->get();
+        if ($relationItems instanceof Collection) {
+            return $relationItems;
+        }
+
+        if (is_object($relationItems)) {
+            $relationItems = [$relationItems];
+        }
+
+        return collect($relationItems)->transform(function ($relationItem) use ($relationClass) {
+            return new $relationClass((array) $relationItem);
+        });
     }
 
     /**
      * Get the value of an attribute using its mutator.
      *
-     * @param  string  $key
+     * @param string $key
+     * @return
      */
     protected function mutateAttribute($key, $value)
     {
@@ -235,7 +248,7 @@ trait HasAttributes
     }
 
     /**
-     * Get all of the current attributes on the model.
+     * Get all of the current attributes on the resource.
      */
     public function getAttributes(): array
     {
@@ -243,7 +256,15 @@ trait HasAttributes
     }
 
     /**
-     * Convert the model's attributes to an array.
+     * Check if the resource has any attributes.
+     */
+    public function hasAttributes(): bool
+    {
+        return !empty($this->attributes);
+    }
+
+    /**
+     * Convert the resource's attributes to an array.
      *
      * @return array
      */

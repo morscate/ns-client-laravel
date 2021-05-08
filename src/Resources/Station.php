@@ -2,7 +2,7 @@
 
 namespace Morscate\NsClient\Resources;
 
-class Station extends NsResource
+class Station extends Resource
 {
     /**
      * The API version the resources can be found in

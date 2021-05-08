@@ -6,7 +6,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Traits\ForwardsCalls;
-use Morscate\NsClient\Resources\NsResource;
+use Morscate\NsClient\Resources\Resource;
 
 class NsClient
 {
@@ -14,7 +14,7 @@ class NsClient
 
     private Client $client;
 
-    private NsResource $resource;
+    private Resource $resource;
 
     /**
      * The API version the resources can be found in
@@ -27,14 +27,14 @@ class NsClient
 
     private array $query = [];
 
-    public function __construct(NsResource $resource)
+    public function __construct(Resource $resource)
     {
         $this->setResource($resource);
 
         $version = $resource->getVersion();
 
         $this->client = new Client([
-            'base_uri' => config('ns-client-laravel.base_uri') . $version . '/'
+            'base_uri' => config('ns-client-laravel.base_uri') . $version . '/',
         ]);
     }
 
@@ -124,9 +124,9 @@ class NsClient
         try {
             $response = $this->client->request($method, $this->endpoint, [
                 'headers' => [
-                    'Ocp-Apim-Subscription-Key' => config('ns-client-laravel.api_key')
+                    'Ocp-Apim-Subscription-Key' => config('ns-client-laravel.api_key'),
                 ],
-                'query' => $this->query
+                'query' => $this->query,
             ]);
         } catch (GuzzleException $exception) {
             dd($exception);
@@ -140,7 +140,7 @@ class NsClient
         return $this->endpoint;
     }
 
-    public function getResource(): NsResource
+    public function getResource(): Resource
     {
         return $this->resource;
     }
@@ -161,9 +161,9 @@ class NsClient
     /**
      * Apply the given scope on the current builder instance.
      *
-     * @param  callable  $scope
-     * @param  array  $parameters
-     * @return mixed
+     * @param callable $scope
+     * @param array $parameters
+     * @return NsClient
      */
     protected function callScope(callable $scope, $parameters = [])
     {
@@ -174,7 +174,7 @@ class NsClient
 
     public function __call($method, $parameters)
     {
-        if ($this->resource !== null && method_exists($this->resource, $scope = 'scope'.ucfirst($method))) {
+        if ($this->resource !== null && method_exists($this->resource, $scope = 'scope' . ucfirst($method))) {
             return $this->callScope([$this->resource, $scope], $parameters);
         }
 

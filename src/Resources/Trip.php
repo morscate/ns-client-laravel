@@ -2,22 +2,33 @@
 
 namespace Morscate\NsClient\Resources;
 
+use Carbon\Carbon;
 use Morscate\NSClient\NsClient;
 
-class Trip extends NsResource
+class Trip extends Resource
 {
     /**
      * The API version the resources can be found in
      */
-    protected $version = 'v3';
+    protected string $version = 'v3';
 
-    protected $endpoint = 'trips';
+    protected string $endpoint = 'trips';
+
+    /**
+     * The field with the resource's primary key.
+     */
+    protected string $primaryKeyFieldName = 'uid';
+
+    protected array $relationships = [
+        'legs'        => Leg::class,
+        'productFare' => Fare::class,
+    ];
 
     public function getVersion(): string
     {
         return $this->version;
     }
-    
+
     public function getEndpoint(): string
     {
         return $this->endpoint;
@@ -64,21 +75,21 @@ class Trip extends NsResource
     }
 
     /**
-     * @param string $value the date time of the departure in RFC3339
+     * @param Carbon $value the date time of the departure in RFC3339
      */
-    public function scopeDepartureDateTime(NsClient $client, $value): NsClient
+    public function scopeDepartureDateTime(NsClient $client, Carbon $value): NsClient
     {
         $client->dateTime($value);
 
         return $client;
     }
-    
+
     /**
-     * @param string $value the date time of the departure in RFC3339
+     * @param Carbon $value the date time of the departure in RFC3339
      */
-    public function scopeDateTime(NsClient $client, $value): NsClient
+    public function scopeDateTime(NsClient $client, Carbon $value): NsClient
     {
-        $client->where('dateTime', $value);
+        $client->where('dateTime', $value->toRfc3339String());
 
         return $client;
     }
